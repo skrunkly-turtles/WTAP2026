@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { ViewProvider } from "@/lib/view";
 import Header from "@/components/Header";
+import InsightsLauncher from "@/components/admin/InsightsLauncher";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -17,7 +18,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${geist.variable} font-sans antialiased`}>
         <ViewProvider>
           <Header />
-          <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-7xl px-4 pt-6 pb-28">{children}</main>
+          <InsightsLauncher />
         </ViewProvider>
       </body>
     </html>

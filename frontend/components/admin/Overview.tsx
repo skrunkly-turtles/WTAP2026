@@ -5,7 +5,6 @@ import { api, Overview as OverviewData } from "@/lib/api";
 import { Card, ErrorNote, SentimentDot, Spinner } from "../ui";
 import { AuthorLine } from "../discussion/PostMeta";
 import AISummaryCard from "./AISummaryCard";
-import AgentChat from "./AgentChat";
 import { SentimentTrend, ThemeBars } from "./Charts";
 
 function Stat({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string }) {
@@ -45,10 +44,7 @@ export default function Overview({ program, onOpenPost, onShowRisk }: { program?
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
-        <AISummaryCard program={program} onOpenPost={onOpenPost} />
-        <AgentChat program={program} onOpenPost={onOpenPost} />
-      </div>
+      <AISummaryCard program={program} onOpenPost={onOpenPost} />
 
       {!data ? <Spinner /> : (
         <>

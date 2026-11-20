@@ -35,7 +35,7 @@ export default function Board() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
-      <Card className="flex h-[calc(100vh-13rem)] min-h-[480px] flex-col overflow-hidden">
+      <Card className="flex h-[calc(100vh-17rem)] min-h-[480px] flex-col overflow-hidden">
         <div className="space-y-2 border-b border-line p-3">
           <div className="flex gap-2">
             <div className="relative flex-1">
@@ -96,7 +96,7 @@ export default function Board() {
               <button onClick={() => setSelected(p.id)}
                 className={cx("block w-full border-l-4 px-3 py-3 text-left transition",
                   selected === p.id ? "border-accent bg-brand-tint/60" : "border-transparent hover:bg-surface")}>
-                <div className="line-clamp-2 text-sm font-semibold">
+                <div className="relative line-clamp-2 text-sm font-semibold">
                   {p.audience === "admins_only" && (
                     <span title="Admins & HR only" className="mr-1 inline-flex align-[-2px] text-accent-dark">
                       <Lock className="h-3.5 w-3.5" aria-hidden />
@@ -118,7 +118,7 @@ export default function Board() {
         </ul>
       </Card>
 
-      <Card className="h-[calc(100vh-13rem)] min-h-[480px] overflow-hidden">
+      <Card className="h-[calc(100vh-17rem)] min-h-[480px] overflow-hidden">
         {selected ? <PostDetail key={selected} postId={selected} onChanged={load} />
           : <div className="grid h-full place-items-center text-sm text-muted">Select a post</div>}
       </Card>

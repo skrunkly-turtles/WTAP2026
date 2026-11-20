@@ -1,17 +1,19 @@
 "use client";
 import { useRef, useState } from "react";
-import { Bot, Send } from "lucide-react";
+import { Bot, Send, X } from "lucide-react";
 import { api, AskAnswer } from "@/lib/api";
 import { Button, Card, cx, inputCls } from "../ui";
 
 type Msg = { role: "user" | "assistant"; content: string; data?: AskAnswer; source?: string };
 const STARTERS = ["What are co-ops most worried about?", "Which teams have workload problems?", "What should we fix first to improve retention?"];
 
-export default function AgentChat({ program, onOpenPost }: { program?: string; onOpenPost: (id: number) => void }) {
+export default function AgentChat({ program, onOpenPost, onClose, className }: {
+  program?: string; onOpenPost: (id: number) => void; onClose?: () => void; className?: string;
+}) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const end = useRef<HTMLDivElement>(null);
+  const scroller = useRef<HTMLDivElement>(null);
 
   const ask = async (question: string) => {
     if (!question.trim()) return;
@@ -25,17 +27,21 @@ export default function AgentChat({ program, onOpenPost }: { program?: string; o
       setMsgs((m) => [...m, { role: "assistant", content: `Error: ${(e as Error).message}` }]);
     } finally {
       setBusy(false);
-      setTimeout(() => end.current?.scrollIntoView({ behavior: "smooth" }), 50);
+      // Scroll only the message list (scrollIntoView would also scroll the page behind a floating panel).
+      setTimeout(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" }), 50);
     }
   };
 
   return (
-    <Card className="flex h-[520px] flex-col">
+    <Card className={cx("flex h-[520px] flex-col", className)}>
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <Bot className="h-5 w-5 text-brand" />
-        <h3 className="font-semibold">Ask the Insights Agent</h3>
+        <h3 className="mr-auto font-semibold">Ask the Insights Agent</h3>
+        {onClose && (
+          <button onClick={onClose} aria-label="Close chat" className="rounded p-1 text-muted hover:bg-surface"><X className="h-4 w-4" /></button>
+        )}
       </div>
-      <div className="flex-1 space-y-3 overflow-y-auto p-4 scroll-thin">
+      <div ref={scroller} className="flex-1 space-y-3 overflow-y-auto p-4 scroll-thin">
         {msgs.length === 0 && (
           <div className="space-y-2">
             <p className="text-sm text-muted">Ask anything about what participants are saying.</p>
@@ -66,7 +72,6 @@ export default function AgentChat({ program, onOpenPost }: { program?: string; o
           </div>
         ))}
         {busy && <div className="w-fit rounded-xl bg-surface px-3 py-2 text-sm text-muted">Thinking…</div>}
-        <div ref={end} />
       </div>
       <form onSubmit={(e) => { e.preventDefault(); ask(q); }} className="flex gap-2 border-t border-line p-3">
         <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask a question…" maxLength={1000} />
