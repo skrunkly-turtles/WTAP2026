@@ -23,7 +23,6 @@ export default function Header() {
     <header className="sticky top-0 z-40 bg-brand text-white shadow">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-md bg-accent text-sm font-black text-brand-dark">RB</span>
           <span className="text-lg font-bold tracking-tight">RB<span className="text-accent">Connect</span></span>
         </Link>
 
