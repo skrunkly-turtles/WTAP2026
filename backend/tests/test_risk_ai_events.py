@@ -36,3 +36,14 @@ def test_events_create_join_leave(client):
     assert client.post(f"/api/events/{ev['id']}/rsvp", headers=as_user(ADMIN)).status_code == 400  # full
     left = client.delete(f"/api/events/{ev['id']}/rsvp", headers=as_user(MARCUS)).get_json()
     assert left["attendee_count"] == 1 and not left["attending"]
+
+
+def test_concerning_posts(client):
+    rows = client.get("/api/admin/concerning?days=90", headers=as_user(ADMIN)).get_json()
+    assert rows and all(r["sentiment"] <= -0.25 or r["risk_keywords"] for r in rows)
+    assert [r["sentiment"] for r in rows] == sorted(r["sentiment"] for r in rows)
+    assert all(r["author"] is None for r in rows if r["anonymity"] == "anonymous")
+    coop = client.get("/api/admin/concerning?days=90&program=coop", headers=as_user(ADMIN)).get_json()
+    assert {r["program"] for r in coop} == {"coop"}
+    assert client.get("/api/admin/concerning?days=5", headers=as_user(ADMIN)).status_code == 400
+    assert client.get("/api/admin/concerning", headers=as_user(ALEX)).status_code == 403

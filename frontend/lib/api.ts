@@ -45,7 +45,7 @@ export interface Activity {
 }
 export interface UserDetail { user: AdminUser; risk: RiskRow & { timeline: { weeks_ago: number; avg_sentiment: number; count: number }[] }; activity: Activity[] }
 
-export interface AIResult<T> { source: "gemini" | "fallback"; model: string | null; generated_at: string; cached?: boolean; data: T }
+export interface AIResult<T> { source: "gemini" | "fallback"; model: string | null; fallback_reason?: "no_key" | "unavailable" | null; generated_at: string; cached?: boolean; data: T }
 export interface ProgramSummary {
   executive_summary: string; overall_health: "healthy" | "mixed" | "concerning";
   top_concerns: { theme: string; title: string; severity: RiskLevel; description: string; affected_program: Program | "both"; evidence_post_ids: number[] }[];
@@ -59,7 +59,6 @@ export interface RiskBrief {
   conversation_starters: string[]; watch_signals: string[];
 }
 export interface AskAnswer { answer: string; cited_post_ids: number[]; follow_up_questions: string[] }
-export interface RevealLogEntry { id: number; target_type: string; target_id: number; reason: string; admin: string; created_at: string }
 
 let actingUserId = 1;
 export function setActingUserId(id: number) { actingUserId = id; }
@@ -92,11 +91,11 @@ export const api = {
   join: (id: number) => post<EventItem>(`/events/${id}/rsvp`),
   leave: (id: number) => request<EventItem>(`/events/${id}/rsvp`, { method: "DELETE" }),
   overview: (program?: string) => request<Overview>(`/admin/overview${qs({ program })}`),
+  concerning: (program?: string, days = 30) => request<Post[]>(`/admin/concerning${qs({ program, days: String(days) })}`),
   atRisk: (program?: string) => request<RiskRow[]>(`/admin/at-risk${qs({ program })}`),
   userDetail: (id: number) => request<UserDetail>(`/admin/users/${id}`),
   reveal: (d: { target_type: "post" | "comment"; target_id: number; reason: string }) =>
     post<{ author: AdminUser; body: string; title: string | null }>("/admin/reveal", d),
-  reveals: () => request<RevealLogEntry[]>("/admin/reveals"),
   summary: (program?: string, regenerate = false) => post<AIResult<ProgramSummary>>("/ai/summary", { program, regenerate }),
   riskBrief: (userId: number, regenerate = false) => post<AIResult<RiskBrief>>(`/ai/risk-brief/${userId}`, { regenerate }),
   ask: (question: string, history: { role: string; content: string }[], program?: string) =>

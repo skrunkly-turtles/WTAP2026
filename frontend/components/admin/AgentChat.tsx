@@ -4,7 +4,7 @@ import { Bot, Send, X } from "lucide-react";
 import { api, AskAnswer } from "@/lib/api";
 import { Button, Card, cx, inputCls } from "../ui";
 
-type Msg = { role: "user" | "assistant"; content: string; data?: AskAnswer; source?: string };
+type Msg = { role: "user" | "assistant"; content: string; data?: AskAnswer; source?: string; reason?: string | null };
 const STARTERS = ["What are co-ops most worried about?", "Which teams have workload problems?", "What should we fix first to improve retention?"];
 
 export default function AgentChat({ program, onOpenPost, onClose, className }: {
@@ -22,7 +22,7 @@ export default function AgentChat({ program, onOpenPost, onClose, className }: {
     setQ(""); setBusy(true);
     try {
       const r = await api.ask(question, history, program);
-      setMsgs((m) => [...m, { role: "assistant", content: r.data.answer, data: r.data, source: r.source }]);
+      setMsgs((m) => [...m, { role: "assistant", content: r.data.answer, data: r.data, source: r.source, reason: r.fallback_reason }]);
     } catch (e) {
       setMsgs((m) => [...m, { role: "assistant", content: `Error: ${(e as Error).message}` }]);
     } finally {
@@ -61,7 +61,9 @@ export default function AgentChat({ program, onOpenPost, onClose, className }: {
                 ))}
               </div>
             )}
-            {m.source === "fallback" && <p className="mt-1 text-[11px] text-muted">Offline fallback (no Gemini key)</p>}
+            {m.source === "fallback" && (
+              <p className="mt-1 text-[11px] text-muted">{m.reason === "no_key" ? "Offline fallback (no Gemini key)" : "Gemini unavailable, showing keyword matches"}</p>
+            )}
             {m.data && i === msgs.length - 1 && m.data.follow_up_questions.length > 0 && (
               <div className="mt-2 space-y-1">
                 {m.data.follow_up_questions.map((f) => (

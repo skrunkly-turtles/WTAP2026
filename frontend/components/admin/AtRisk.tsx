@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronRight, Lock, ShieldCheck, Sparkles, VenetianMask, X } from "lucide-react";
+import { ChevronRight, Lock, Sparkles, VenetianMask, X } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
-import { AIResult, api, RevealLogEntry, RiskBrief, RiskRow, UserDetail } from "@/lib/api";
+import { AIResult, api, RiskBrief, RiskRow, UserDetail } from "@/lib/api";
 import { PROGRAM_LABEL, timeAgo, titleCase } from "@/lib/format";
 import { Badge, Button, Card, cx, ErrorNote, SentimentDot, Spinner } from "../ui";
 import RevealDialog from "./RevealDialog";
-import { SourceBadge } from "./AISummaryCard";
 
 function ScoreBar({ score, level }: { score: number; level: RiskRow["level"] }) {
   const color = { high: "bg-risk-high", medium: "bg-risk-med", low: "bg-risk-low" }[level];
@@ -34,11 +33,11 @@ function Brief({ userId }: { userId: number }) {
         <h4 className="mr-auto font-semibold">AI intervention brief</h4>
         <Button variant={b ? "outline" : "primary"} onClick={() => gen(!!b)} loading={loading} className="py-1">{b ? "Regenerate" : "Generate brief"}</Button>
       </div>
-      {!b && !loading && <p className="mt-1 text-xs text-muted">Uses this person&apos;s posts (incl. anonymous) via pseudonym. Generation is audit-logged.</p>}
+      {!b && !loading && <p className="mt-1 text-xs text-muted">Uses this person&apos;s posts (incl. anonymous) via pseudonym.</p>}
       {error && <div className="mt-2"><ErrorNote message={error} /></div>}
       {res && (
         <div className="mt-3 space-y-3 text-sm">
-          <div className="[&_*]:!text-muted">{res.source === "gemini" ? <span className="text-xs">Gemini · {res.model}</span> : <SourceBadge r={res} />}</div>
+          {res.source === "gemini" && <div className="text-xs text-muted">Gemini · {res.model}</div>}
           <p>{b!.summary}</p>
           <div>
             <h5 className="mb-1 text-xs font-semibold uppercase text-muted">Key drivers</h5>
@@ -92,7 +91,6 @@ function RiskDrawer({ userId, onClose }: { userId: number; onClose: () => void }
               <Badge tone={d.risk.level}>{d.risk.level} risk · {d.risk.score}</Badge>
               <span>{PROGRAM_LABEL[d.user.program ?? ""]} · {d.user.team}</span>
               <span>· Manager: {d.user.manager}</span>
-              <span>· {d.user.email}</span>
             </div>
 
             <Card className="p-4">
@@ -157,34 +155,11 @@ function RiskDrawer({ userId, onClose }: { userId: number; onClose: () => void }
   );
 }
 
-function AuditLog() {
-  const [logs, setLogs] = useState<RevealLogEntry[] | null>(null);
-  useEffect(() => { api.reveals().then(setLogs).catch(() => setLogs([])); }, []);
-  return (
-    <Card>
-      <div className="flex items-center gap-2 border-b border-line px-5 py-3">
-        <ShieldCheck className="h-4 w-4 text-brand" /><h3 className="font-semibold">Identity reveal audit log</h3>
-      </div>
-      {!logs ? <Spinner /> : logs.length === 0 ? <p className="px-5 py-4 text-sm text-muted">No reveals yet.</p> : (
-        <ul className="divide-y divide-line text-sm">
-          {logs.map((l) => (
-            <li key={l.id} className="px-5 py-2.5">
-              <span className="font-medium">{l.admin}</span> · {titleCase(l.target_type)} #{l.target_id} · <span className="text-muted">{timeAgo(l.created_at)}</span>
-              <p className="text-xs text-muted">{l.reason}</p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
 export default function AtRisk({ program }: { program?: string }) {
   const [rows, setRows] = useState<RiskRow[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [logKey, setLogKey] = useState(0);
   useEffect(() => { setRows(null); api.atRisk(program).then(setRows).catch((e) => setError(e.message)); }, [program]);
 
   if (error) return <ErrorNote message={error} />;
@@ -233,8 +208,7 @@ export default function AtRisk({ program }: { program?: string }) {
           </table>
         </div>
       </Card>
-      <AuditLog key={logKey} />
-      {open && <RiskDrawer userId={open} onClose={() => { setOpen(null); setLogKey((k) => k + 1); }} />}
+      {open && <RiskDrawer userId={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }

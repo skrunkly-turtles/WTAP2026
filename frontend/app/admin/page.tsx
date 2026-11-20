@@ -1,9 +1,10 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertTriangle, LayoutDashboard } from "lucide-react";
+import { AlertTriangle, LayoutDashboard, MessageSquareWarning } from "lucide-react";
 import Overview from "@/components/admin/Overview";
 import AtRisk from "@/components/admin/AtRisk";
+import ConcerningPosts from "@/components/admin/ConcerningPosts";
 import PostDetail from "@/components/discussion/PostDetail";
 import { cx, Modal, Spinner, Tabs } from "@/components/ui";
 import { useView, DEFAULT_ADMIN_ID } from "@/lib/view";
@@ -12,7 +13,8 @@ function AdminDashboard() {
   const params = useSearchParams();
   const router = useRouter();
   const { isAdmin, setActingUser } = useView();
-  const tab = params.get("tab") === "risk" ? "risk" : "overview";
+  const raw = params.get("tab");
+  const tab = raw === "risk" || raw === "concerning" ? raw : "overview";
   const [program, setProgram] = useState<string | undefined>();
   const [openPost, setOpenPost] = useState<number | null>(null);
 
@@ -20,7 +22,7 @@ function AdminDashboard() {
   useEffect(() => { if (!isAdmin) setActingUser(DEFAULT_ADMIN_ID); }, [isAdmin, setActingUser]);
   if (!isAdmin) return <Spinner />;
 
-  const setTab = (t: string) => router.replace(t === "risk" ? "/admin?tab=risk" : "/admin");
+  const setTab = (t: string) => router.replace(t === "overview" ? "/admin" : `/admin?tab=${t}`);
 
   return (
     <div className="space-y-4">
@@ -38,13 +40,14 @@ function AdminDashboard() {
       </div>
       <Tabs
         tabs={[{ id: "overview", label: "Overview", icon: <LayoutDashboard className="h-4 w-4" /> },
+               { id: "concerning", label: "Concerning Posts", icon: <MessageSquareWarning className="h-4 w-4" /> },
                { id: "risk", label: "At-Risk", icon: <AlertTriangle className="h-4 w-4" /> }]}
         value={tab}
         onChange={setTab}
       />
-      {tab === "overview"
-        ? <Overview program={program} onOpenPost={setOpenPost} onShowRisk={() => setTab("risk")} />
-        : <AtRisk program={program} />}
+      {tab === "overview" && <Overview program={program} onOpenPost={setOpenPost} onShowRisk={() => setTab("risk")} />}
+      {tab === "concerning" && <ConcerningPosts program={program} onOpenPost={setOpenPost} />}
+      {tab === "risk" && <AtRisk program={program} />}
       <Modal open={openPost !== null} onClose={() => setOpenPost(null)} title={`Post #${openPost}`} wide>
         <div className="-m-5 h-[70vh]">{openPost !== null && <PostDetail postId={openPost} onChanged={() => {}} />}</div>
       </Modal>

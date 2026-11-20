@@ -33,8 +33,8 @@ marked "Offline fallback" in the UI.
 - **Post visibility.** *Who can see:* Everyone, or Admins & HR only (a private thread with HR).
   *Show my name:* Yes, or Anonymous. Enforced on the server in `routes/posts.py` and `services/serializers.py`.
 - **Reveal.** Anonymous authors are hidden from everyone, admins included. An admin can reveal one
-  item by giving a reason. Each reveal, and each AI risk brief (which reads anonymous activity), is
-  written to the audit log shown on the At-Risk tab.
+  item by giving a reason. Reveals and AI risk briefs are still recorded in the `RevealLog` table
+  (`GET /api/admin/reveals`), but the audit log view is currently hidden in the UI.
 - **Risk score (0–100)** in `services/risk.py`: a low recent sentiment average, a drop from the
   person's own baseline, and weighted risk phrases ("other offer", "burnout", "not valued", …).
   Comments count for half as much as posts. Levels: high ≥ 65, medium ≥ 35.

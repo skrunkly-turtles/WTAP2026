@@ -95,6 +95,22 @@ def overview():
     )
 
 
+@bp.get("/concerning")
+def concerning_posts():
+    """Posts that need HR attention: negative tone or a risk phrase, most negative first."""
+    admin = require_admin()
+    program = _program_arg()
+    days = request.args.get("days", default=30, type=int)
+    if days not in (7, 30, 90):
+        abort(400, "days must be 7, 30 or 90")
+    posts, _ = _items(program)
+    cutoff = utcnow() - timedelta(days=days)
+    flagged = [p for p in posts if p.created_at >= cutoff and ((p.sentiment or 0) <= -0.25 or p.risk_keywords)]
+    flagged.sort(key=lambda p: (p.sentiment or 0, -(p.upvotes or 0)))
+    rp = revealed_ids("post")
+    return jsonify([post_dict(p, admin, revealed_posts=rp) for p in flagged[:50]])
+
+
 @bp.get("/at-risk")
 def at_risk():
     require_admin()

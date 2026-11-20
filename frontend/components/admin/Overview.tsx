@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AlertTriangle, Lock, MessageSquare, Smile, Users, VenetianMask } from "lucide-react";
+import { AlertTriangle, MessageSquare, Smile, Users, VenetianMask } from "lucide-react";
 import { api, Overview as OverviewData } from "@/lib/api";
-import { Card, ErrorNote, SentimentDot, Spinner } from "../ui";
-import { AuthorLine } from "../discussion/PostMeta";
+import { Card, ErrorNote, Spinner } from "../ui";
 import AISummaryCard from "./AISummaryCard";
 import { SentimentTrend, ThemeBars } from "./Charts";
 
@@ -60,26 +59,6 @@ export default function Overview({ program, onOpenPost, onShowRisk }: { program?
               <ThemeBars data={data.themes} />
             </Card>
           </div>
-          <Card>
-            <div className="border-b border-line px-5 py-3">
-              <h3 className="font-semibold">Most concerning recent posts</h3>
-              <p className="text-xs text-muted">Lowest sentiment in the last 30 days</p>
-            </div>
-            <ul className="divide-y divide-line">
-              {data.concerning_posts.map((p) => (
-                <li key={p.id}>
-                  <button onClick={() => onOpenPost(p.id)} className="flex w-full items-start gap-3 px-5 py-3 text-left hover:bg-surface">
-                    <SentimentDot value={p.sentiment} />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium">{p.title}{p.audience === "admins_only" && <Lock className="ml-1 inline h-3.5 w-3.5 text-accent-dark" />}</div>
-                      <p className="line-clamp-1 text-sm text-muted">{p.body}</p>
-                      <AuthorLine author={p.author} anonymity={p.anonymity} createdAt={p.created_at} revealed={p.revealed} />
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
         </>
       )}
     </div>

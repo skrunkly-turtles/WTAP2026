@@ -75,7 +75,7 @@ export default function NewPostModal({ open, onClose, categories, onCreated }: {
             <Choice selected={anonymity === "public"} onClick={() => setAnonymity("public")} icon={<UserRound className="h-4 w-4" />}
               title="Show my name" desc="Your name appears on the post" />
             <Choice selected={anonymity === "anonymous"} onClick={() => setAnonymity("anonymous")} icon={<VenetianMask className="h-4 w-4" />}
-              title="Anonymous" desc="Hidden from everyone. HR may view identity only if support is needed (logged)." />
+              title="Anonymous" desc="Hidden from everyone. HR may view identity only if support is needed." />
           </div>
         </div>
         <p className="rounded-lg bg-accent-tint px-3 py-2 text-xs text-brand-dark">{preview}</p>

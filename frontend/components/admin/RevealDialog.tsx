@@ -28,14 +28,13 @@ export default function RevealDialog({ target, onClose, onRevealed }: {
           <p className="font-semibold">{result.author.name}</p>
           <p className="text-muted">{result.author.email} · {PROGRAM_LABEL[result.author.program ?? ""]} · {result.author.team} · Manager: {result.author.manager ?? "—"}</p>
           <p className="rounded-lg bg-surface p-3">{result.body}</p>
-          <p className="text-xs text-muted">This reveal was recorded in the audit log.</p>
           <div className="flex justify-end"><Button onClick={() => onRevealed(result)}>Done</Button></div>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-3">
           <div className="flex gap-2 rounded-lg border border-risk-med/30 bg-risk-med-tint p-3 text-sm text-risk-med">
             <ShieldAlert className="h-5 w-5 shrink-0" />
-            <span>Only reveal when intervention is needed for the participant&apos;s wellbeing or safety. Your name, time and reason are logged permanently.</span>
+            <span>Only reveal when intervention is needed for the participant&apos;s wellbeing or safety.</span>
           </div>
           <Field label="Reason for reveal" hint="At least 10 characters">
             <textarea className={cx(inputCls, "min-h-20")} value={reason} onChange={(e) => setReason(e.target.value)} required minLength={10} />
@@ -43,7 +42,7 @@ export default function RevealDialog({ target, onClose, onRevealed }: {
           {error && <ErrorNote message={error} />}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="danger" loading={saving} disabled={reason.trim().length < 10}>Reveal & log</Button>
+            <Button type="submit" variant="danger" loading={saving} disabled={reason.trim().length < 10}>Reveal identity</Button>
           </div>
         </form>
       )}

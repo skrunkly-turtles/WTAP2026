@@ -15,7 +15,7 @@ from collections import Counter
 from datetime import timedelta
 from typing import Literal
 
-from flask import current_app
+from flask import current_app, g
 from pydantic import BaseModel, Field
 
 from models import Post, User, utcnow
@@ -90,37 +90,56 @@ def _client():
     if not key:
         return None
     from google import genai
+    from google.genai import types
 
-    return genai.Client(api_key=key)
+    # Per-request timeout so an overloaded model can't hang the request for minutes.
+    timeout_ms = int(current_app.config.get("GEMINI_TIMEOUT_S", 45) * 1000)
+    return genai.Client(api_key=key, http_options=types.HttpOptions(timeout=timeout_ms))
+
+
+def _models() -> list[str]:
+    """Primary model first, then fallbacks (tried when a model is overloaded or unavailable)."""
+    chain = [current_app.config["GEMINI_MODEL"], *current_app.config.get("GEMINI_FALLBACK_MODELS", [])]
+    return list(dict.fromkeys(m for m in chain if m))
 
 
 def _generate(prompt: str, schema: type[BaseModel]) -> BaseModel | None:
+    """Return a parsed result from the first model that answers, or None (caller falls back).
+
+    The model that answered is stored on flask.g for _result(); the reason for a fallback
+    ("no_key" or "unavailable") is stored as g.gemini_fallback_reason.
+    """
     client = _client()
     if client is None:
+        g.gemini_fallback_reason = "no_key"
         return None
     from google.genai import types
 
-    try:
-        resp = client.models.generate_content(
-            model=current_app.config["GEMINI_MODEL"],
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM,
-                response_mime_type="application/json",
-                response_schema=schema,
-                temperature=0.3,
-            ),
-        )
-        if getattr(resp, "parsed", None) is not None:
-            return resp.parsed if isinstance(resp.parsed, schema) else schema.model_validate(resp.parsed)
-        return schema.model_validate_json(resp.text)
-    except Exception:  # network, quota, validation: fall back
-        log.exception("Gemini call failed; using fallback")
-        return None
+    cfg = types.GenerateContentConfig(
+        system_instruction=SYSTEM,
+        response_mime_type="application/json",
+        response_schema=schema,
+        temperature=0.3,
+    )
+    for model in _models():
+        try:
+            resp = client.models.generate_content(model=model, contents=prompt, config=cfg)
+            parsed = getattr(resp, "parsed", None)
+            if parsed is not None:
+                result = parsed if isinstance(parsed, schema) else schema.model_validate(parsed)
+            else:
+                result = schema.model_validate_json(resp.text)
+            g.gemini_model = model
+            return result
+        except Exception as e:  # overloaded (503), timeout (504), quota (429), retired (404), bad JSON
+            log.warning("Gemini model %s failed (%s: %s); trying next", model, type(e).__name__, str(e)[:200])
+    g.gemini_fallback_reason = "unavailable"
+    return None
 
 
 def _result(model: BaseModel, source: str) -> dict:
-    return {"source": source, "model": current_app.config["GEMINI_MODEL"] if source == "gemini" else None,
+    return {"source": source, "model": g.get("gemini_model") if source == "gemini" else None,
+            "fallback_reason": g.get("gemini_fallback_reason") if source == "fallback" else None,
             "generated_at": utcnow().isoformat(), "data": model.model_dump()}
 
 
@@ -331,7 +350,8 @@ def ask(question: str, history: list[dict] | None = None, program: str | None = 
     if model:
         return _result(model, "gemini")
     top = context[:5]
-    answer = ("Gemini is not configured, so here are the most relevant posts by keyword match: "
+    why = "is not configured" if g.get("gemini_fallback_reason") == "no_key" else "is unavailable right now"
+    answer = (f"Gemini {why}, so here are the most relevant posts by keyword match: "
               + "; ".join(f"#{p.id} “{p.title}” (sentiment {p.sentiment:+.2f})" for p in top)) if top else "No matching posts found."
     return _result(AskAnswer(answer=answer, cited_post_ids=[p.id for p in top],
                              follow_up_questions=["Which themes are most negative this month?",

@@ -112,13 +112,16 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export const inputCls = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20";
 
-export function SentimentDot({ value }: { value?: number }) {
+export function SentimentDot({ value, hideValue }: { value?: number; hideValue?: boolean }) {
   if (value === undefined) return null;
   const tone = value <= -0.25 ? "bg-risk-high" : value >= 0.25 ? "bg-risk-low" : "bg-muted/50";
+  const text = `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+  // With hideValue the number moves into the tooltip and the accessible label.
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted" title="Sentiment (VADER, −1 to +1)">
+    <span className="inline-flex items-center gap-1 text-xs text-muted" title={`Sentiment ${text} (−1 to +1)`}
+      {...(hideValue ? { role: "img", "aria-label": `Sentiment ${text}` } : {})}>
       <span className={cx("h-2 w-2 rounded-full", tone)} />
-      {value >= 0 ? "+" : ""}{value.toFixed(2)}
+      {!hideValue && text}
     </span>
   );
 }
