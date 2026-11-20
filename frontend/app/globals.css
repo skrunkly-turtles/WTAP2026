@@ -20,6 +20,17 @@
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Tailwind v4 preflight leaves buttons with the default cursor; restore the pointer.
+   In the base layer so utilities like disabled:cursor-not-allowed still win. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 body {
   background: var(--color-surface);
   color: var(--color-ink);

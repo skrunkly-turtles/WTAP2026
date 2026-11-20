@@ -1,11 +1,11 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { MessageSquare, Plus, Search, ThumbsUp } from "lucide-react";
+import { Lock, MessageSquare, Plus, Search, SlidersHorizontal, ThumbsUp, X } from "lucide-react";
 import { api, Post } from "@/lib/api";
 import { useView } from "@/lib/view";
 import { titleCase } from "@/lib/format";
-import { Button, Card, cx, ErrorNote, inputCls, SentimentDot, Spinner } from "../ui";
-import { AuthorLine, PostBadges } from "./PostMeta";
+import { Button, Card, cx, ErrorNote, inputCls, Spinner } from "../ui";
+import { AuthorLine } from "./PostMeta";
 import NewPostModal from "./NewPostModal";
 import PostDetail from "./PostDetail";
 
@@ -18,6 +18,8 @@ export default function Board() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<number | null>(null);
   const [composing, setComposing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const activeCount = (category ? 1 : 0) + (audience ? 1 : 0);
 
   const load = useCallback(() => {
     api.posts({ category, q, audience }).then((ps) => {
@@ -40,23 +42,49 @@ export default function Board() {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted" />
               <input className={cx(inputCls, "pl-8")} placeholder="Search posts" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
+            <button onClick={() => setShowFilters((s) => !s)} aria-expanded={showFilters} aria-label="Filters" title="Filters"
+              className={cx("relative grid w-10 shrink-0 place-items-center rounded-lg border transition",
+                showFilters ? "border-brand bg-brand-tint text-brand" : "border-line bg-white text-muted hover:text-ink")}>
+              <SlidersHorizontal className="h-4 w-4" />
+              {activeCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">{activeCount}</span>
+              )}
+            </button>
             <Button onClick={() => setComposing(true)} variant="accent"><Plus className="h-4 w-4" />Post</Button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {["", ...(meta?.categories ?? [])].map((c) => (
-              <button key={c || "all"} onClick={() => setCategory(c)}
-                className={cx("whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium",
-                  category === c ? "border-brand bg-brand text-white" : "border-line bg-white text-muted hover:text-ink")}>
-                {c ? titleCase(c) : "All"}
-              </button>
-            ))}
-          </div>
-          {isAdmin && (
-            <select className={cx(inputCls, "py-1 text-xs")} value={audience} onChange={(e) => setAudience(e.target.value)} aria-label="Audience filter">
-              <option value="">All audiences</option>
-              <option value="everyone">Everyone posts</option>
-              <option value="admins_only">Admins-only posts (private to HR)</option>
-            </select>
+          {showFilters ? (
+            <>
+              <div className="flex flex-wrap gap-1.5">
+                {["", ...(meta?.categories ?? [])].map((c) => (
+                  <button key={c || "all"} onClick={() => setCategory(c)}
+                    className={cx("whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-medium",
+                      category === c ? "border-brand bg-brand text-white" : "border-line bg-white text-muted hover:text-ink")}>
+                    {c ? titleCase(c) : "All"}
+                  </button>
+                ))}
+              </div>
+              {isAdmin && (
+                <select className={cx(inputCls, "py-1 text-xs")} value={audience} onChange={(e) => setAudience(e.target.value)} aria-label="Audience filter">
+                  <option value="">All audiences</option>
+                  <option value="everyone">Everyone posts</option>
+                  <option value="admins_only">Admins-only posts (private to HR)</option>
+                </select>
+              )}
+            </>
+          ) : activeCount > 0 && (
+            // Collapsed: keep active filters visible so the list isn't silently filtered.
+            <div className="flex flex-wrap gap-1.5">
+              {category && (
+                <button onClick={() => setCategory("")} className="flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-white">
+                  {titleCase(category)} <X className="h-3 w-3" />
+                </button>
+              )}
+              {audience && (
+                <button onClick={() => setAudience("")} className="flex items-center gap-1 rounded-full bg-brand px-2.5 py-1 text-xs font-medium text-white">
+                  {audience === "admins_only" ? "Admins only" : "Everyone"} <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           )}
         </div>
         <ul className="flex-1 divide-y divide-line overflow-y-auto scroll-thin">
@@ -68,8 +96,15 @@ export default function Board() {
               <button onClick={() => setSelected(p.id)}
                 className={cx("block w-full border-l-4 px-3 py-3 text-left transition",
                   selected === p.id ? "border-accent bg-brand-tint/60" : "border-transparent hover:bg-surface")}>
-                <div className="mb-1 flex items-center justify-between gap-2"><PostBadges post={p} />{isAdmin && <SentimentDot value={p.sentiment} />}</div>
-                <div className="line-clamp-2 text-sm font-semibold">{p.title}</div>
+                <div className="line-clamp-2 text-sm font-semibold">
+                  {p.audience === "admins_only" && (
+                    <span title="Admins & HR only" className="mr-1 inline-flex align-[-2px] text-accent-dark">
+                      <Lock className="h-3.5 w-3.5" aria-hidden />
+                      <span className="sr-only">Admins only: </span>
+                    </span>
+                  )}
+                  {p.title}
+                </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <AuthorLine author={p.author} anonymity={p.anonymity} createdAt={p.created_at} revealed={p.revealed} />
                   <span className="flex shrink-0 items-center gap-2 text-xs text-muted">
