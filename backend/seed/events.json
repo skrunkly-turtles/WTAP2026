@@ -1,0 +1,143 @@
+[
+  {
+    "title": "Early Talent Coffee Chats",
+    "description": "Casual coffee and conversation with early talent from across teams. Drop in anytime.",
+    "days_from_now": 3,
+    "hour": 10,
+    "location": "Floor 12 Caf\u00e9",
+    "capacity": 30,
+    "creator": 1,
+    "rsvps": [
+      4,
+      7,
+      9,
+      13,
+      16,
+      19,
+      26
+    ]
+  },
+  {
+    "title": "Lunch & Learn: Navigating Return Offers",
+    "description": "HR walks through the return-offer process, timelines and what to expect. Bring questions!",
+    "days_from_now": 5,
+    "hour": 12,
+    "location": "Auditorium B + Teams",
+    "capacity": 120,
+    "creator": 2,
+    "rsvps": [
+      4,
+      5,
+      7,
+      10,
+      15,
+      11,
+      17,
+      18
+    ]
+  },
+  {
+    "title": "Holiday Party Planning Session",
+    "description": "Help plan the early talent holiday party. Pizza provided.",
+    "days_from_now": 6,
+    "hour": 17,
+    "location": "Room 14-210",
+    "capacity": 15,
+    "creator": 11,
+    "rsvps": [
+      11,
+      13,
+      9
+    ]
+  },
+  {
+    "title": "Resume & LinkedIn Workshop",
+    "description": "Polish your resume and LinkedIn with recruiters.",
+    "days_from_now": 9,
+    "hour": 14,
+    "location": "Teams",
+    "capacity": 80,
+    "creator": 3,
+    "rsvps": [
+      6,
+      12,
+      21,
+      24,
+      28
+    ]
+  },
+  {
+    "title": "Trivia Night Rematch",
+    "description": "Can anyone dethrone Ctrl Alt Defeat? Teams of 4.",
+    "days_from_now": 12,
+    "hour": 18,
+    "location": "Social Lounge",
+    "capacity": 48,
+    "creator": 13,
+    "rsvps": [
+      9,
+      13,
+      16,
+      19,
+      20,
+      21,
+      25
+    ]
+  },
+  {
+    "title": "Mentorship Mixer",
+    "description": "Meet potential mentors from senior leadership. Matching for next term opens after.",
+    "days_from_now": 14,
+    "hour": 16,
+    "location": "Floor 30 Atrium",
+    "capacity": 60,
+    "creator": 1,
+    "rsvps": [
+      19,
+      21,
+      26,
+      28,
+      4,
+      17
+    ]
+  },
+  {
+    "title": "Book Club: Atomic Habits",
+    "description": "Monthly book club. This month: Atomic Habits.",
+    "days_from_now": 16,
+    "hour": 12,
+    "location": "Room 9-110",
+    "capacity": 20,
+    "creator": 9,
+    "rsvps": [
+      9,
+      13,
+      28
+    ]
+  },
+  {
+    "title": "Early Talent Holiday Party",
+    "description": "Celebrate the term with food, games and prizes!",
+    "days_from_now": 25,
+    "hour": 18,
+    "location": "Main Hall",
+    "capacity": 200,
+    "creator": 2,
+    "rsvps": [
+      4,
+      7,
+      9,
+      11,
+      13,
+      16,
+      17,
+      19,
+      20,
+      21,
+      24,
+      25,
+      26,
+      28
+    ]
+  }
+]
