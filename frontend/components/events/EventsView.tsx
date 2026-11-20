@@ -126,6 +126,7 @@ export default function EventsView() {
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState<number | null>(null);
   const [view, setView] = useState<CalendarView>("list");
+  const [dateRange, setDateRange] = useState<"week" | "all">("week");
   const [date, setDate] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
@@ -141,10 +142,15 @@ export default function EventsView() {
     } catch (err) { setError((err as Error).message); } finally { setBusy(null); }
   };
 
-  const visibleEvents = events?.filter((event) => {
-    const starts = new Date(event.starts_at).getTime();
-    return Number.isFinite(starts) && starts >= dayStart(date).getTime();
-  }).sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()) ?? [];
+  const selectedWeekStart = startOfWeek(date);
+  const selectedWeekEnd = addDays(selectedWeekStart, 7);
+  const rangeEvents = (events ?? [])
+    .filter((event) => {
+      if (dateRange === "all") return true;
+      const starts = new Date(event.starts_at).getTime();
+      return Number.isFinite(starts) && starts >= selectedWeekStart.getTime() && starts < selectedWeekEnd.getTime();
+    })
+    .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
   const eventsByDay = new Map<string, EventItem[]>();
   for (const event of events ?? []) {
     const eventDate = new Date(event.starts_at);
@@ -240,7 +246,7 @@ export default function EventsView() {
 
   const renderAgenda = () => (
     <div className="space-y-3">
-      {visibleEvents.length ? visibleEvents.map((event) => {
+      {rangeEvents.length ? rangeEvents.map((event) => {
         const eventDate = new Date(event.starts_at);
         return (
           <Card key={event.id} className="flex items-center gap-4 p-4">
@@ -259,7 +265,7 @@ export default function EventsView() {
             </Button>
           </Card>
         );
-      }) : <Card className="p-8 text-center text-sm text-muted">No upcoming events in this range.</Card>}
+      }) : <Card className="p-8 text-center text-sm text-muted">No events in this range.</Card>}
     </div>
   );
 
@@ -275,22 +281,35 @@ export default function EventsView() {
         <Card className="space-y-4 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              {view !== "list" && (
+              {(view !== "list" || dateRange === "week") && (
                 <>
                   <Button variant="outline" className="px-2.5" aria-label="Previous period" onClick={() => navigate(-1)}><ChevronLeft className="h-4 w-4" /></Button>
                   <Button variant="outline" onClick={() => setDate(new Date())}>Today</Button>
                   <Button variant="outline" className="px-2.5" aria-label="Next period" onClick={() => navigate(1)}><ChevronRight className="h-4 w-4" /></Button>
-                  <h2 className="ml-1 text-base font-semibold">{headingFor(date, view)}</h2>
+                  <h2 className="ml-1 text-base font-semibold">{view === "agenda" && dateRange === "all" ? "All events" : headingFor(date, view === "list" ? "week" : view)}</h2>
                 </>
               )}
+              {view === "list" && dateRange === "all" && <h2 className="ml-1 text-base font-semibold">All events</h2>}
             </div>
-            <div className="flex gap-1 overflow-x-auto rounded-lg bg-surface p-1" role="tablist" aria-label="Calendar view">
-              {calendarViews.map((item) => (
-                <button key={item.id} role="tab" aria-selected={view === item.id} onClick={() => setView(item.id)}
-                  className={cx("rounded-md px-3 py-1.5 text-sm font-medium transition", view === item.id ? "bg-white text-brand shadow-sm" : "text-muted hover:text-ink")}>
-                  {item.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              {(view === "list" || view === "agenda") && (
+                <div className="flex gap-1 rounded-lg bg-surface p-1" role="group" aria-label={`${view === "list" ? "List" : "Agenda"} date range`}>
+                  {(["week", "all"] as const).map((range) => (
+                    <button key={range} type="button" aria-pressed={dateRange === range} onClick={() => setDateRange(range)}
+                      className={cx("rounded-md px-3 py-1.5 text-sm font-medium transition", dateRange === range ? "bg-white text-brand shadow-sm" : "text-muted hover:text-ink")}>
+                      {range === "week" ? "Week" : "All"}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-1 overflow-x-auto rounded-lg bg-surface p-1" role="tablist" aria-label="Calendar view">
+                {calendarViews.map((item) => (
+                  <button key={item.id} role="tab" aria-selected={view === item.id} onClick={() => setView(item.id)}
+                    className={cx("rounded-md px-3 py-1.5 text-sm font-medium transition", view === item.id ? "bg-white text-brand shadow-sm" : "text-muted hover:text-ink")}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           {events.length === 0 ? (
@@ -303,7 +322,7 @@ export default function EventsView() {
             : view === "week" || view === "day" ? renderTimeGrid()
               : view === "agenda" ? renderAgenda() : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {events.map((ev) => {
+                  {rangeEvents.map((ev) => {
                     const d = new Date(ev.starts_at);
                     const full = ev.capacity !== null && ev.attendee_count >= ev.capacity && !ev.attending;
                     return (
@@ -337,6 +356,7 @@ export default function EventsView() {
                       </Card>
                     );
                   })}
+                  {rangeEvents.length === 0 && <p className="col-span-full py-8 text-center text-sm text-muted">{dateRange === "week" ? "No events this week." : "No events."}</p>}
                 </div>
               )}
         </Card>
