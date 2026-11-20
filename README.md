@@ -27,9 +27,8 @@ With no `GEMINI_API_KEY`, the AI features return a deterministic summary built f
 marked "Offline fallback" in the UI.
 
 ## How it works
-- **Identity (demo only).** There is no login. The app starts as an admin (Jordan Patel). The header
-  switch toggles **Main ↔ Admin** dashboards. On Main, "Viewing as" previews any participant.
-  The frontend sends `X-User-Id` and the backend reads the role from the DB. This can be spoofed, so
+- **Identity (demo only).** There is no login. The app always runs as an admin (Jordan Patel). The header
+  switch toggles **Main ↔ Admin** dashboards. The frontend sends `X-User-Id` and the backend reads the role from the DB. This can be spoofed, so
   replace it with SSO before real data goes in (`backend/services/identity.py`).
 - **Post visibility.** *Who can see:* Everyone, or Admins & HR only (a private thread with HR).
   *Show my name:* Yes, or Anonymous. Enforced on the server in `routes/posts.py` and `services/serializers.py`.
