@@ -59,6 +59,9 @@ export interface RiskBrief {
   conversation_starters: string[]; watch_signals: string[];
 }
 export interface AskAnswer { answer: string; cited_post_ids: number[]; follow_up_questions: string[] }
+export interface ChatMessage {
+  role: "user" | "assistant"; content: string; data?: AskAnswer; source?: string; reason?: string | null; cached?: boolean;
+}
 
 let actingUserId = 1;
 export function setActingUserId(id: number) { actingUserId = id; }
@@ -97,7 +100,10 @@ export const api = {
   reveal: (d: { target_type: "post" | "comment"; target_id: number; reason: string }) =>
     post<{ author: AdminUser; body: string; title: string | null }>("/admin/reveal", d),
   summary: (program?: string, regenerate = false) => post<AIResult<ProgramSummary>>("/ai/summary", { program, regenerate }),
+  savedRiskBrief: (userId: number) => request<AIResult<RiskBrief> | null>(`/ai/risk-brief/${userId}`),
   riskBrief: (userId: number, regenerate = false) => post<AIResult<RiskBrief>>(`/ai/risk-brief/${userId}`, { regenerate }),
-  ask: (question: string, history: { role: string; content: string }[], program?: string) =>
-    post<AIResult<AskAnswer>>("/ai/ask", { question, history, program }),
+  // History is kept on the server; it is not sent from the browser.
+  ask: (question: string, program?: string) => post<AIResult<AskAnswer>>("/ai/ask", { question, program }),
+  chat: () => request<{ messages: ChatMessage[] }>("/ai/chat"),
+  clearChat: () => request<{ messages: ChatMessage[] }>("/ai/chat", { method: "DELETE" }),
 };

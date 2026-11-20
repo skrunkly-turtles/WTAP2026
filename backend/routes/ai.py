@@ -1,3 +1,5 @@
+import hashlib
+
 from flask import Blueprint, abort, jsonify, request
 
 from models import AIInsight, RevealLog, User, db
@@ -51,9 +53,58 @@ def risk_brief(user_id):
     return jsonify(_store("risk_brief", key, ai_agent.risk_brief(user)))
 
 
+@bp.get("/risk-brief/<int:user_id>")
+def saved_risk_brief(user_id):
+    """Return the saved brief for this participant without generating one (null if none yet)."""
+    require_admin()
+    hit = _cached("risk_brief", str(user_id))
+    return jsonify({**hit.payload, "cached": True} if hit else None)
+
+
+CHAT_LIMIT = 50  # messages kept per admin
+
+
+def _normalize(q: str) -> str:
+    return " ".join(q.lower().split()).rstrip("?!. ")
+
+
+def _chat_row(admin_id: int) -> AIInsight | None:
+    return _cached("chat", str(admin_id))
+
+
+def _chat_messages(admin_id: int) -> list[dict]:
+    row = _chat_row(admin_id)
+    return list(row.payload.get("messages", [])) if row else []
+
+
+def _save_chat(admin_id: int, messages: list[dict]):
+    row = _chat_row(admin_id)
+    payload = {"messages": messages[-CHAT_LIMIT:]}
+    if row:
+        row.payload = payload  # reassign so SQLAlchemy sees the JSON change
+    else:
+        db.session.add(AIInsight(kind="chat", scope_key=str(admin_id), payload=payload))
+    db.session.commit()
+
+
+@bp.get("/chat")
+def get_chat():
+    """This admin's saved Insights Agent conversation."""
+    admin = require_admin()
+    return jsonify(messages=_chat_messages(admin.id))
+
+
+@bp.delete("/chat")
+def clear_chat():
+    admin = require_admin()
+    AIInsight.query.filter_by(kind="chat", scope_key=str(admin.id)).delete()
+    db.session.commit()
+    return jsonify(messages=[])
+
+
 @bp.post("/ask")
 def ask():
-    require_admin()
+    admin = require_admin()
     data = request.get_json(silent=True) or {}
     question = (data.get("question") or "").strip()
     if not question or len(question) > 1000:
@@ -61,5 +112,25 @@ def ask():
     program = data.get("program") or None
     if program and program not in PROGRAMS:
         abort(400, "Invalid program")
-    history = data.get("history") if isinstance(data.get("history"), list) else []
-    return jsonify(ai_agent.ask(question, history, program))
+
+    messages = _chat_messages(admin.id)
+    history = [{"role": m["role"], "content": m["content"]} for m in messages]
+
+    # A question asked at the start of a conversation doesn't depend on earlier turns, so a saved
+    # Gemini answer to the same question can be reused. Follow-ups always go to Gemini.
+    answer_key = hashlib.sha1(f"{program or 'all'}|{_normalize(question)}".encode()).hexdigest()
+    hit = None if history else _cached("ask", answer_key)
+    if hit:
+        result = {**hit.payload, "cached": True}
+    else:
+        result = ai_agent.ask(question, history, program)
+        if not history:
+            _store("ask", answer_key, result)
+
+    messages += [
+        {"role": "user", "content": question},
+        {"role": "assistant", "content": result["data"]["answer"], "data": result["data"],
+         "source": result["source"], "reason": result.get("fallback_reason"), "cached": bool(hit)},
+    ]
+    _save_chat(admin.id, messages)
+    return jsonify(result)

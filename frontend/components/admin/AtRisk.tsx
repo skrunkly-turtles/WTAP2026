@@ -20,7 +20,13 @@ function ScoreBar({ score, level }: { score: number; level: RiskRow["level"] }) 
 function Brief({ userId }: { userId: number }) {
   const [res, setRes] = useState<AIResult<RiskBrief> | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingSaved, setCheckingSaved] = useState(true);
   const [error, setError] = useState("");
+  // Show the saved brief (if any) as soon as the drawer opens; generating is only on click.
+  useEffect(() => {
+    setCheckingSaved(true);
+    api.savedRiskBrief(userId).then(setRes).catch(() => {}).finally(() => setCheckingSaved(false));
+  }, [userId]);
   const gen = (regenerate = false) => {
     setLoading(true); setError("");
     api.riskBrief(userId, regenerate).then(setRes).catch((e) => setError(e.message)).finally(() => setLoading(false));
@@ -31,13 +37,15 @@ function Brief({ userId }: { userId: number }) {
       <div className="flex flex-wrap items-center gap-2">
         <Sparkles className="h-4 w-4 text-brand" />
         <h4 className="mr-auto font-semibold">AI intervention brief</h4>
-        <Button variant={b ? "outline" : "primary"} onClick={() => gen(!!b)} loading={loading} className="py-1">{b ? "Regenerate" : "Generate brief"}</Button>
+        <Button variant={b ? "outline" : "primary"} onClick={() => gen(!!b)} loading={loading} disabled={checkingSaved} className="py-1">{b ? "Regenerate" : "Generate brief"}</Button>
       </div>
-      {!b && !loading && <p className="mt-1 text-xs text-muted">Uses this person&apos;s posts (incl. anonymous) via pseudonym.</p>}
+      {!b && !loading && !checkingSaved && <p className="mt-1 text-xs text-muted">Uses this person&apos;s posts (incl. anonymous) via pseudonym.</p>}
       {error && <div className="mt-2"><ErrorNote message={error} /></div>}
       {res && (
         <div className="mt-3 space-y-3 text-sm">
-          {res.source === "gemini" && <div className="text-xs text-muted">Gemini · {res.model}</div>}
+          {res.source === "gemini" && (
+            <div className="text-xs text-muted">Gemini · {res.model} · {res.cached ? "saved " : ""}{timeAgo(res.generated_at)}</div>
+          )}
           <p>{b!.summary}</p>
           <div>
             <h5 className="mb-1 text-xs font-semibold uppercase text-muted">Key drivers</h5>

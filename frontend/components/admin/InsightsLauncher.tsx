@@ -17,7 +17,7 @@ export default function InsightsLauncher() {
   return (
     <>
       <div className={cx("fixed bottom-24 right-4 z-40 w-[calc(100vw-2rem)] max-w-sm sm:right-6", !open && "hidden")}>
-        <AgentChat onOpenPost={setPost} onClose={() => setOpen(false)} className="h-[min(560px,calc(100vh-9rem))] shadow-2xl" />
+        <AgentChat active={open} onOpenPost={setPost} onClose={() => setOpen(false)} className="h-[min(560px,calc(100vh-9rem))] shadow-2xl" />
       </div>
 
       <button

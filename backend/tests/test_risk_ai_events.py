@@ -47,3 +47,42 @@ def test_concerning_posts(client):
     assert {r["program"] for r in coop} == {"coop"}
     assert client.get("/api/admin/concerning?days=5", headers=as_user(ADMIN)).status_code == 400
     assert client.get("/api/admin/concerning", headers=as_user(ALEX)).status_code == 403
+
+
+def test_saved_risk_brief(client, app, monkeypatch):
+    from services import ai_agent
+    assert client.get(f"/api/ai/risk-brief/{MARCUS}", headers=as_user(ADMIN)).get_json() is None
+    # Fallback output is not saved, so a real (Gemini) result is simulated here.
+    fake = {"source": "gemini", "model": "test-model", "fallback_reason": None, "generated_at": "2026-01-01T00:00:00",
+            "data": {"risk_level": "high", "summary": "s", "key_drivers": [], "recommended_interventions": [],
+                     "conversation_starters": [], "watch_signals": []}}
+    monkeypatch.setattr(ai_agent, "risk_brief", lambda user: fake)
+    client.post(f"/api/ai/risk-brief/{MARCUS}", headers=as_user(ADMIN), json={})
+    saved = client.get(f"/api/ai/risk-brief/{MARCUS}", headers=as_user(ADMIN)).get_json()
+    assert saved["cached"] and saved["model"] == "test-model"
+    assert client.get(f"/api/ai/risk-brief/{MARCUS}", headers=as_user(ALEX)).status_code == 403
+
+
+def test_chat_history_saved_and_answers_reused(client, monkeypatch):
+    from services import ai_agent
+    calls = []
+
+    def fake_ask(question, history, program):
+        calls.append((question, len(history)))
+        return {"source": "gemini", "model": "test-model", "fallback_reason": None, "generated_at": "2026-01-01T00:00:00",
+                "data": {"answer": f"answer to {question}", "cited_post_ids": [1], "follow_up_questions": []}}
+
+    monkeypatch.setattr(ai_agent, "ask", fake_ask)
+    H = as_user(ADMIN)
+    assert client.get("/api/ai/chat", headers=H).get_json()["messages"] == []
+    client.post("/api/ai/ask", headers=H, json={"question": "What worries co-ops?"})
+    client.post("/api/ai/ask", headers=H, json={"question": "Tell me more"})  # follow-up sees history
+    assert calls == [("What worries co-ops?", 0), ("Tell me more", 2)]
+    msgs = client.get("/api/ai/chat", headers=H).get_json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant", "user", "assistant"]
+
+    client.delete("/api/ai/chat", headers=H)
+    assert client.get("/api/ai/chat", headers=H).get_json()["messages"] == []
+    r = client.post("/api/ai/ask", headers=H, json={"question": "what worries co-ops"}).get_json()
+    assert r["cached"] and len(calls) == 2  # same opening question reused, no new Gemini call
+    assert client.get("/api/ai/chat", headers=as_user(ALEX)).status_code == 403
